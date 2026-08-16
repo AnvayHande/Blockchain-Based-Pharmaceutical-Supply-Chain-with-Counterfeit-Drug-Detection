@@ -1,0 +1,16 @@
+node_modules/
+.env
+coverage/
+coverage.json
+typechain/
+typechain-types/
+build/
+artifacts/
+cache/
+frontend/node_modules/
+frontend/dist/
+backend/node_modules/
+.DS_Store
+ANTIGRAVITY_GIT_INSTRUCTIONS.md
+learn.md
+pharmaceutical_blockchain_implementation_plan.md
