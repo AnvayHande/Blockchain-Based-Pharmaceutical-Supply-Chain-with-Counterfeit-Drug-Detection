@@ -14,6 +14,11 @@ async function main() {
   
   const targetAddress = await pharmaSupplyChain.getAddress();
   console.log("PharmaSupplyChain deployed to:", targetAddress);
+  
+  const network = await hardhat.ethers.provider.getNetwork();
+  if (Number(network.chainId) === 11155111 || hardhat.network.name === "sepolia") {
+    console.log(`Etherscan link: https://sepolia.etherscan.io/address/${targetAddress}`);
+  }
 
   // Write the contract address and ABI to frontend/src/contracts/config.js
   const configDir = path.join(__dirname, "../frontend/src/contracts");
