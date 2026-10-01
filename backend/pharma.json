@@ -1,0 +1,41 @@
+{
+  "TEST-001": {
+    "batchId": "TEST-001",
+    "medicineName": "Paracetamol",
+    "quantity": 100
+  },
+  "PHM-CIP-PAR-20260929-001": {
+    "batchId": "PHM-CIP-PAR-20260929-001",
+    "createdAt": "2026-09-29T07:38:33.888Z",
+    "documentCID": "",
+    "dosageForm": "tablet",
+    "expiryDate": "2028-09-28",
+    "genericName": "Paracetamol",
+    "licenceNumber": "MFG-2026-001",
+    "manufactureDate": "2026-09-29",
+    "manufacturerAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "medicineName": "Paracetamol 500mg",
+    "mrp": "₹45.00",
+    "quantity": 1000,
+    "storageInstructions": "Store below 30°C",
+    "strength": "500mg",
+    "unitType": "strips"
+  },
+  "PHM-CIP-IBU-20260929-001": {
+    "batchId": "PHM-CIP-IBU-20260929-001",
+    "createdAt": "2026-09-29T07:38:33.986Z",
+    "documentCID": "",
+    "dosageForm": "tablet",
+    "expiryDate": "2027-09-29",
+    "genericName": "Ibuprofen",
+    "licenceNumber": "MFG-2026-002",
+    "manufactureDate": "2026-09-29",
+    "manufacturerAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "medicineName": "Ibuprofen 400mg",
+    "mrp": "₹32.00",
+    "quantity": 500,
+    "storageInstructions": "Store below 25°C, protect from light",
+    "strength": "400mg",
+    "unitType": "strips"
+  }
+}
