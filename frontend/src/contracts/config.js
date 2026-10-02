@@ -33,6 +33,12 @@ export const CONTRACT_ABI = [
       {
         "indexed": true,
         "internalType": "string",
+        "name": "batchIdHash",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
         "name": "batchId",
         "type": "string"
       },
@@ -58,6 +64,12 @@ export const CONTRACT_ABI = [
       {
         "indexed": true,
         "internalType": "string",
+        "name": "batchIdHash",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
         "name": "batchId",
         "type": "string"
       }
@@ -70,6 +82,12 @@ export const CONTRACT_ABI = [
     "inputs": [
       {
         "indexed": true,
+        "internalType": "string",
+        "name": "batchIdHash",
+        "type": "string"
+      },
+      {
+        "indexed": false,
         "internalType": "string",
         "name": "batchId",
         "type": "string"
@@ -96,6 +114,12 @@ export const CONTRACT_ABI = [
       {
         "indexed": true,
         "internalType": "string",
+        "name": "batchIdHash",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
         "name": "batchId",
         "type": "string"
       },
@@ -114,6 +138,12 @@ export const CONTRACT_ABI = [
     "inputs": [
       {
         "indexed": true,
+        "internalType": "string",
+        "name": "batchIdHash",
+        "type": "string"
+      },
+      {
+        "indexed": false,
         "internalType": "string",
         "name": "batchId",
         "type": "string"
@@ -321,6 +351,82 @@ export const CONTRACT_ABI = [
   {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "_batchId",
+        "type": "string"
+      }
+    ],
+    "name": "getBatchSummary",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "batchId",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "medicineName",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "manufacturer",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "manufactureDate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expiryDate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "quantity",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "metadataHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "currentOwner",
+            "type": "address"
+          },
+          {
+            "internalType": "enum PharmaSupplyChain.MedicineStatus",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "string",
+            "name": "documentCID",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "exists",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct PharmaSupplyChain.MedicineBatch",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes32",
         "name": "role",
         "type": "bytes32"
@@ -429,6 +535,25 @@ export const CONTRACT_ABI = [
     "inputs": [
       {
         "internalType": "string",
+        "name": "_batchId",
+        "type": "string"
+      }
+    ],
+    "name": "isExpired",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
         "name": "",
         "type": "string"
       }
@@ -459,6 +584,16 @@ export const CONTRACT_ABI = [
         "internalType": "uint256",
         "name": "expiryDate",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "quantity",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "metadataHash",
+        "type": "bytes32"
       },
       {
         "internalType": "address",
@@ -552,6 +687,16 @@ export const CONTRACT_ABI = [
         "internalType": "uint256",
         "name": "_expiryDate",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_quantity",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_metadataHash",
+        "type": "bytes32"
       },
       {
         "internalType": "string",
@@ -776,6 +921,16 @@ export const CONTRACT_ABI = [
             "internalType": "uint256",
             "name": "expiryDate",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "quantity",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "metadataHash",
+            "type": "bytes32"
           },
           {
             "internalType": "address",
