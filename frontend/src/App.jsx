@@ -1,40 +1,114 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { Web3Provider, useWeb3 } from './context/Web3Context';
-import { Shield, Activity, Search } from 'lucide-react';
+import { Shield, QrCode, LayoutDashboard, Settings } from 'lucide-react';
+import { ROLES, getRoleRoute } from './lib/roles';
+import { isCorrectNetwork, normalizeChainId } from './lib/network';
+
+// Pages
+import VerifyPage         from './pages/VerifyPage';
+import ScanPage           from './pages/ScanPage';
+import ManufacturerPage   from './pages/ManufacturerPage';
+import DistributorPage    from './pages/DistributorPage';
+import WholesalerPage     from './pages/WholesalerPage';
+import PharmacyPage       from './pages/PharmacyPage';
+import AdminPage          from './pages/AdminPage';
+import NotFoundPage       from './pages/NotFoundPage';
+
 import './index.css';
 
 function Navbar() {
-  const { account, connectWallet } = useWeb3();
+  const { account, roleName, organizationName, connectWallet, connecting, isConnected, role, balance, chainId, switchNetwork } = useWeb3();
+  const location = useLocation();
+
+  const navLink = (to, label, icon) => {
+    const active = location.pathname === to;
+    return (
+      <Link
+        to={to}
+        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+          active
+            ? 'bg-indigo-50 text-indigo-700'
+            : 'text-gray-600 hover:text-indigo-600 hover:bg-gray-50'
+        }`}
+      >
+        {icon}
+        {label}
+      </Link>
+    );
+  };
+
+  const roleRoute = role ? getRoleRoute(role) : null;
 
   return (
-    <nav className="bg-white/70 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 shadow-sm">
+    <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
+        <div className="flex justify-between h-16 items-center">
+          {/* Brand */}
+          <Link to="/" className="flex items-center gap-2">
             <Shield className="h-8 w-8 text-indigo-600" />
-            <span className="ml-2 text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+            <span className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
               PharmaChain
             </span>
+          </Link>
+
+          {/* Nav links */}
+          <div className="flex items-center gap-1">
+            {navLink('/', 'Verify', null)}
+            {navLink('/scan', 'Scan', <QrCode className="h-4 w-4" />)}
+
+            {isConnected && roleRoute && roleRoute !== '/admin' && (
+              <Link
+                to={roleRoute}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors ml-1"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                My Dashboard
+              </Link>
+            )}
+
+            {isConnected && role === ROLES.ADMIN && (
+              <Link
+                to="/admin"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-700 border border-red-100 hover:bg-red-100 transition-colors ml-1"
+              >
+                <Settings className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
           </div>
-          <div className="flex items-center space-x-4">
-            <Link to="/" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md font-medium transition-colors">
-              Verify
-            </Link>
-            <Link to="/dashboard" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md font-medium transition-colors">
-              Dashboard
-            </Link>
-            {account ? (
-              <div className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full font-medium text-sm border border-indigo-100">
-                {account.substring(0, 6)}...{account.substring(account.length - 4)}
+
+          {/* Wallet */}
+          <div className="flex items-center gap-3">
+            {isConnected && account ? (
+              <div className="flex items-center gap-2">
+                {organizationName && (
+                  <span className="hidden md:block text-sm font-medium text-gray-700">{organizationName}</span>
+                )}
+                {roleName && (
+                  <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold border border-indigo-100">
+                    {roleName}
+                  </span>
+                )}
+                {balance && (
+                  <div className="hidden sm:block px-2.5 py-1 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-full">
+                    {Number(balance).toFixed(4)} ETH
+                  </div>
+                )}
+                <div className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full font-mono text-xs">
+                  {account.slice(0, 6)}…{account.slice(-4)}
+                </div>
               </div>
             ) : (
-              <button
-                onClick={connectWallet}
-                className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-full font-medium hover:shadow-lg hover:opacity-90 transition-all duration-200"
-              >
-                Connect Wallet
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={connectWallet}
+                  disabled={connecting}
+                  className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-full text-sm font-semibold hover:shadow-lg hover:opacity-90 transition-all disabled:opacity-50"
+                >
+                  {connecting ? 'Connecting…' : 'Connect MetaMask'}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -43,41 +117,41 @@ function Navbar() {
   );
 }
 
-function Home() {
-  return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-4 relative overflow-hidden bg-gray-50">
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-200/50 blur-[100px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-violet-200/50 blur-[100px]" />
-      </div>
-      
-      <div className="text-center max-w-2xl mx-auto mb-12 animate-fade-in-up">
-        <div className="inline-flex items-center justify-center p-3 bg-indigo-100 rounded-2xl mb-6">
-          <Activity className="h-8 w-8 text-indigo-600" />
-        </div>
-        <h1 className="text-5xl font-extrabold text-gray-900 tracking-tight mb-6">
-          Verify Medicine <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Authenticity</span>
-        </h1>
-        <p className="text-xl text-gray-600">
-          Trace your pharmaceutical products from manufacturer to pharmacy on an immutable blockchain ledger.
-        </p>
-      </div>
+function DashboardRedirect() {
+  const { role, isConnected } = useWeb3();
+  if (!isConnected) return <Navigate to="/" replace />;
+  const route = getRoleRoute(role);
+  return <Navigate to={route} replace />;
+}
 
-      <div className="w-full max-w-md">
-        <div className="bg-white p-2 rounded-full shadow-lg flex items-center border border-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
-          <div className="pl-4">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input 
-            type="text" 
-            placeholder="Enter Batch ID (e.g. BATCH001)" 
-            className="w-full px-4 py-3 outline-none text-gray-700 bg-transparent"
-          />
-          <button className="px-6 py-3 bg-indigo-600 text-white rounded-full font-medium hover:bg-indigo-700 transition-colors shrink-0">
-            Verify
+function GlobalBanners() {
+  const { isConnected, chainId, balance, switchNetwork, account } = useWeb3();
+  const location = useLocation();
+  const targetChainId = Number(import.meta.env.VITE_CHAIN_ID || 11155111);
+
+  if (!isConnected) return null;
+
+  const isWrongNetwork = chainId && !isCorrectNetwork(chainId);
+  const isLowBalance = balance && Number(balance) < 0.005;
+
+  return (
+    <div className="flex flex-col w-full z-40">
+      {isWrongNetwork && (
+        <div className="w-full bg-red-600 text-white px-4 py-2.5 flex justify-between items-center text-sm font-medium">
+          <span>You are on chain {normalizeChainId(chainId)}. Please switch to Sepolia ({targetChainId}).</span>
+          <button onClick={switchNetwork} className="px-3 py-1.5 bg-white text-red-600 rounded-md font-semibold hover:bg-gray-100 transition-colors">
+            Switch to Sepolia
           </button>
         </div>
-      </div>
+      )}
+      {isLowBalance && !isWrongNetwork && location.pathname !== '/' && location.pathname !== '/scan' && (
+        <div className="w-full bg-amber-500 text-white px-4 py-2.5 flex justify-between items-center text-sm font-medium">
+          <span>Low Sepolia ETH. You need free test ETH to pay gas.</span>
+          <button onClick={() => navigator.clipboard.writeText(account)} className="px-3 py-1.5 bg-white text-amber-600 rounded-md font-semibold hover:bg-gray-100 transition-colors">
+            Copy my address
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -88,9 +162,17 @@ function App() {
       <Router>
         <div className="min-h-screen font-sans bg-gray-50 text-gray-900">
           <Navbar />
+          <GlobalBanners />
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<div className="p-8 text-center text-gray-500">Dashboard Coming Soon</div>} />
+            <Route path="/"             element={<VerifyPage />} />
+            <Route path="/scan"         element={<ScanPage />} />
+            <Route path="/manufacturer" element={<ManufacturerPage />} />
+            <Route path="/distributor"  element={<DistributorPage />} />
+            <Route path="/wholesaler"   element={<WholesalerPage />} />
+            <Route path="/pharmacy"     element={<PharmacyPage />} />
+            <Route path="/admin"        element={<AdminPage />} />
+            <Route path="/dashboard"    element={<DashboardRedirect />} />
+            <Route path="*"             element={<NotFoundPage />} />
           </Routes>
         </div>
       </Router>
