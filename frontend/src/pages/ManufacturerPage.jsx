@@ -98,14 +98,26 @@ function ManufacturerInner() {
 
   // ── Load distributors ──────────────────────────────────────────
   const loadDistributors = useCallback(async () => {
-    if (!contract) return;
     try {
-      const filter = contract.filters.ParticipantRegistered(null, null, ROLES.DISTRIBUTOR);
-      const events = await contract.queryFilter(filter, 0, 'latest');
-      const list   = events.map(e => ({ address: e.args[0], name: e.args[1] }));
+      const targetContract = contract || getReadContract();
+      const filter = targetContract.filters.ParticipantRegistered();
+      const events = await targetContract.queryFilter(filter, 0, 'latest');
+      const list   = [];
+      const seen   = new Set();
+      for (const e of events) {
+        const addr = e.args[0];
+        if (seen.has(addr.toLowerCase())) continue;
+        seen.add(addr.toLowerCase());
+        try {
+          const p = await targetContract.participants(addr);
+          if (p.authorized && p.role === ROLES.DISTRIBUTOR) {
+            list.push({ address: addr, name: (p.organizationName || e.args[1] || '').trim() });
+          }
+        } catch (_) {}
+      }
       setDistributors(list);
     } catch (err) {
-      console.error(err);
+      console.error('Error loading distributors:', err);
     }
   }, [contract]);
 

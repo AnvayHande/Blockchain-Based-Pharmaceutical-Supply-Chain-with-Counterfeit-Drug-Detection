@@ -87,20 +87,31 @@ function SupplyChainActorInner({ roleName, allowedTargetRoles, targetLabel, page
 
   // ── Load target participants ───────────────────────────────────
   const loadTargets = useCallback(async () => {
-    if (!contract) return;
-    const all = [];
-    for (const roleHash of allowedTargetRoles) {
-      try {
-        const filter = contract.filters.ParticipantRegistered(null, null, roleHash);
-        const events = await contract.queryFilter(filter, 0, 'latest');
-        events.forEach(e => all.push({
-          address:  e.args[0],
-          name:     e.args[1],
-          roleName: getRoleName(roleHash),
-        }));
-      } catch (_) {}
+    try {
+      const targetContract = contract || getReadContract();
+      const filter = targetContract.filters.ParticipantRegistered();
+      const events = await targetContract.queryFilter(filter, 0, 'latest');
+      const all = [];
+      const seen = new Set();
+      for (const e of events) {
+        const addr = e.args[0];
+        if (seen.has(addr.toLowerCase())) continue;
+        seen.add(addr.toLowerCase());
+        try {
+          const p = await targetContract.participants(addr);
+          if (p.authorized && allowedTargetRoles.includes(p.role)) {
+            all.push({
+              address:  addr,
+              name:     (p.organizationName || e.args[1] || '').trim(),
+              roleName: getRoleName(p.role),
+            });
+          }
+        } catch (_) {}
+      }
+      setTargets(all);
+    } catch (err) {
+      console.error('Error loading targets:', err);
     }
-    setTargets(all);
   }, [contract, allowedTargetRoles]);
 
   useEffect(() => {
