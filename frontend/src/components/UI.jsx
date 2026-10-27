@@ -313,12 +313,13 @@ function TimelineItem({ color, date, title, detail, sub }) {
 
 // ── RoleGuard ─────────────────────────────────────────────────────
 export function RoleGuard({ requiredRole, children }) {
-  const { account, connecting, role, roleName, connectWallet, isConnected } = React.useContext(Web3Context);
+  const { account, connecting, role, roleName, connectWallet, isConnected, error } = React.useContext(Web3Context);
 
   if (connecting) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+        <p className="text-gray-500 font-medium">Connecting to MetaMask...</p>
       </div>
     );
   }
@@ -333,6 +334,11 @@ export function RoleGuard({ requiredRole, children }) {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Wallet Required</h2>
           <p className="text-gray-500 max-w-md">Connect your MetaMask wallet to access this role page.</p>
         </div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm max-w-md text-left">
+            <span className="font-semibold">Notice:</span> {error}
+          </div>
+        )}
         <button
           onClick={connectWallet}
           className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl hover:opacity-90 transition-all"

@@ -99,6 +99,37 @@ export default function ScanPage() {
     setScanning(false);
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    setDetected(null);
+    
+    if (scanning) {
+      stopScan();
+    }
+
+    try {
+      const html5Qr = new Html5Qrcode('qr-reader');
+      const decodedText = await html5Qr.scanFile(file, true);
+      
+      let batchId = decodedText.trim();
+      try {
+        const url = new URL(decodedText);
+        const param = url.searchParams.get('batch');
+        if (param) batchId = param;
+      } catch (_) {}
+      
+      setDetected(batchId);
+    } catch (err) {
+      setError("Could not find a valid QR code in the image. Please try another one.");
+    }
+    
+    // Clear input
+    e.target.value = '';
+  };
+
   const goVerify = () => {
     if (detected) navigate(`/?batch=${encodeURIComponent(detected)}`);
   };
@@ -162,22 +193,40 @@ export default function ScanPage() {
 
         {/* Controls */}
         {!detected && (
-          <div className="flex gap-3">
-            {!scanning ? (
-              <button
-                onClick={startScan}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-2xl font-semibold shadow-lg hover:opacity-90 transition"
-              >
-                <Camera className="h-5 w-5" /> Start Camera
-              </button>
-            ) : (
-              <button
-                onClick={stopScan}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-red-600 text-white rounded-2xl font-semibold shadow-lg hover:bg-red-700 transition"
-              >
-                <Loader2 className="h-5 w-5 animate-spin" /> Stop Scanning
-              </button>
-            )}
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              {!scanning ? (
+                <button
+                  onClick={startScan}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-2xl font-semibold shadow-lg hover:opacity-90 transition"
+                >
+                  <Camera className="h-5 w-5" /> Start Camera
+                </button>
+              ) : (
+                <button
+                  onClick={stopScan}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-red-600 text-white rounded-2xl font-semibold shadow-lg hover:bg-red-700 transition"
+                >
+                  <Loader2 className="h-5 w-5 animate-spin" /> Stop Scanning
+                </button>
+              )}
+            </div>
+            
+            <div className="relative">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                title="Upload Image"
+              />
+              <div className="flex items-center justify-center gap-2 py-3.5 bg-white text-indigo-600 border-2 border-indigo-100 rounded-2xl font-semibold shadow-sm hover:bg-indigo-50 transition pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Upload Image
+              </div>
+            </div>
           </div>
         )}
 

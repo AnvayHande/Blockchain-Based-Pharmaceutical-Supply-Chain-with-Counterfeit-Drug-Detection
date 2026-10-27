@@ -13,7 +13,8 @@ import { computeVerdict } from '../lib/verdict';
 import { getMetadata } from '../lib/api';
 import { hashMetadata, pickCanonicalFields } from '../lib/metadata';
 import {
-  Timeline, useToast, TxButton, VerdictBanner, translateError
+  Timeline, useToast, TxButton, VerdictBanner, translateError,
+  RoleGuard, PageHeader, BatchCard
 } from '../components/UI';
 
 // ── DistributorPage ───────────────────────────────────────────────

@@ -14,6 +14,17 @@ import { normalizeChainId } from '../lib/network';
 
 export const Web3Context = createContext();
 
+function getMetaMaskProvider() {
+  if (typeof window === 'undefined') return null;
+  const eth = window.ethereum;
+  if (!eth) return null;
+  if (eth.providers && Array.isArray(eth.providers) && eth.providers.length > 0) {
+    const metaMask = eth.providers.find((p) => p.isMetaMask);
+    if (metaMask) return metaMask;
+  }
+  return eth;
+}
+
 export function Web3Provider({ children }) {
   const [account,          setAccount]          = useState(null);
   const [contract,         setContract]         = useState(null);
@@ -28,42 +39,7 @@ export function Web3Provider({ children }) {
   const [balance,          setBalance]          = useState(null); // Added for ETH balance
   const [chainId,          setChainId]          = useState(null);
 
-  const connectWallet = useCallback(async () => {
-    if (!window.ethereum) {
-      setError('Please install MetaMask to use role pages.');
-      return;
-    }
-    setConnecting(true);
-    setError(null);
-    try {
-      const _provider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(_provider);
-
-      const accounts = await _provider.send('eth_requestAccounts', []);
-      const _account = accounts[0];
-      setAccount(_account);
-
-      const _signer   = await _provider.getSigner();
-      setSigner(_signer);
-
-      const network = await _provider.getNetwork();
-      setChainId(normalizeChainId(network.chainId));
-      
-      const bal = await _provider.getBalance(_account);
-      setBalance(ethers.formatEther(bal));
-
-      const _contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, _signer);
-      setContract(_contract);
-
-      await fetchParticipantDetails(_contract, _account);
-      setIsConnected(true);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setConnecting(false);
-    }
-  }, []);
-
+  const clearError = useCallback(() => setError(null), []);
 
   const fetchParticipantDetails = async (_contract, _account) => {
     try {
@@ -86,50 +62,150 @@ export function Web3Provider({ children }) {
         }
       }
     } catch (err) {
-      console.error('Error fetching participant role', err);
+      console.warn('Could not fetch participant role from contract:', err.message);
+      setRole(null);
+      setRoleName(null);
+      setOrganizationName(null);
     }
   };
-  
+
+  const connectWallet = useCallback(async () => {
+    const eth = getMetaMaskProvider();
+    if (!eth) {
+      setError('MetaMask extension was not detected. Please install or enable MetaMask in your browser.');
+      return;
+    }
+    setConnecting(true);
+    setError(null);
+
+    try {
+      // 1. Request accounts from wallet
+      let accounts;
+      try {
+        accounts = await eth.request({ method: 'eth_requestAccounts' });
+      } catch (reqErr) {
+        if (reqErr.code === 4001) {
+          throw new Error('MetaMask connection was rejected. Please click Connect MetaMask and approve the request.');
+        } else if (reqErr.code === -32002) {
+          throw new Error('A MetaMask request is already pending. Please click the MetaMask fox icon in your browser toolbar to approve it.');
+        } else {
+          throw new Error(reqErr.message || 'Failed to request accounts from MetaMask.');
+        }
+      }
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found. Please unlock your MetaMask wallet and select an account.');
+      }
+
+      const _account = accounts[0];
+      setAccount(_account);
+
+      // 2. Set up BrowserProvider
+      const _provider = new ethers.BrowserProvider(eth);
+      setProvider(_provider);
+
+      let _signer = null;
+      try {
+        _signer = await _provider.getSigner();
+        setSigner(_signer);
+      } catch (signerErr) {
+        console.warn('Could not get signer:', signerErr);
+      }
+
+      // Mark as connected once account is retrieved
+      setIsConnected(true);
+
+      // 3. Query network with resilience
+      try {
+        const network = await _provider.getNetwork();
+        setChainId(normalizeChainId(network.chainId));
+      } catch (netErr) {
+        console.warn('Failed to query network from provider, falling back to eth_chainId:', netErr);
+        try {
+          const rawChain = await eth.request({ method: 'eth_chainId' });
+          setChainId(normalizeChainId(rawChain));
+        } catch (rawNetErr) {
+          console.warn('Failed to get raw chainId:', rawNetErr);
+        }
+      }
+
+      // 4. Query balance with resilience
+      try {
+        const bal = await _provider.getBalance(_account);
+        setBalance(ethers.formatEther(bal));
+      } catch (balErr) {
+        console.warn('Failed to fetch balance:', balErr);
+      }
+
+      // 5. Connect contract & fetch role
+      if (_signer) {
+        try {
+          const _contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, _signer);
+          setContract(_contract);
+          await fetchParticipantDetails(_contract, _account);
+        } catch (contractErr) {
+          console.warn('Contract setup warning:', contractErr);
+        }
+      }
+    } catch (err) {
+      console.error('Wallet connection error:', err);
+      setError(err.message || 'Failed to connect to MetaMask');
+    } finally {
+      setConnecting(false);
+    }
+  }, []);
+
   const switchNetwork = async () => {
-    if (!window.ethereum) return;
+    const eth = getMetaMaskProvider();
+    if (!eth) return;
     const targetChainId = parseInt(import.meta.env.VITE_CHAIN_ID || '11155111', 10);
     const hexChainId = `0x${targetChainId.toString(16)}`;
+
     try {
-      await window.ethereum.request({
+      await eth.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: hexChainId }],
       });
-      // Re-connect immediately upon successful switch
       await connectWallet();
     } catch (switchError) {
       if (switchError.code === 4902) {
         try {
-          await window.ethereum.request({
+          const isLocal = targetChainId === 31337 || targetChainId === 1337;
+          const chainParams = isLocal ? {
+            chainId: hexChainId,
+            chainName: 'Hardhat Localhost',
+            rpcUrls: [import.meta.env.VITE_RPC_URL || 'http://127.0.0.1:8545'],
+            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 }
+          } : {
+            chainId: hexChainId,
+            chainName: 'Sepolia Testnet',
+            rpcUrls: [import.meta.env.VITE_RPC_URL || 'https://rpc.sepolia.org'],
+            nativeCurrency: { name: 'Sepolia ETH', symbol: 'SEP', decimals: 18 },
+            blockExplorerUrls: ['https://sepolia.etherscan.io']
+          };
+
+          await eth.request({
             method: 'wallet_addEthereumChain',
-            params: [
-              {
-                chainId: hexChainId,
-                chainName: 'Sepolia',
-                rpcUrls: [import.meta.env.VITE_RPC_URL || 'https://rpc.sepolia.org'],
-                nativeCurrency: { name: 'Sepolia ETH', symbol: 'SEP', decimals: 18 },
-                blockExplorerUrls: ['https://sepolia.etherscan.io']
-              }
-            ],
+            params: [chainParams],
           });
+          await connectWallet();
         } catch (addError) {
           console.error('Failed to add network', addError);
+          setError(`Failed to add network: ${addError.message}`);
         }
       } else {
         console.error('Failed to switch network', switchError);
+        setError(`Failed to switch network: ${switchError.message}`);
       }
     }
   };
 
   useEffect(() => {
-    if (!window.ethereum) return;
+    const eth = getMetaMaskProvider();
+    if (!eth) return;
 
     const handleAccountsChanged = (accounts) => {
-      if (accounts.length > 0) {
+      if (accounts && accounts.length > 0) {
         connectWallet();
       } else {
         setAccount(null);
@@ -142,24 +218,27 @@ export function Web3Provider({ children }) {
       }
     };
 
-    const handleChainChanged = (newChainId) => {
-      // Avoid full page reload; just re-connect to update state.
+    const handleChainChanged = () => {
       connectWallet();
     };
 
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    window.ethereum.on('chainChanged',    handleChainChanged);
+    if (eth.on) {
+      eth.on('accountsChanged', handleAccountsChanged);
+      eth.on('chainChanged',    handleChainChanged);
+    }
 
-    // Auto-connect if already authorized (no prompt)
-    window.ethereum.request({ method: 'eth_accounts' })
+    // Auto-connect if already authorized
+    eth.request({ method: 'eth_accounts' })
       .then(accounts => {
-        if (accounts.length > 0) connectWallet();
+        if (accounts && accounts.length > 0) connectWallet();
       })
-      .catch(console.error);
+      .catch(console.warn);
 
     return () => {
-      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-      window.ethereum.removeListener('chainChanged',    handleChainChanged);
+      if (eth.removeListener) {
+        eth.removeListener('accountsChanged', handleAccountsChanged);
+        eth.removeListener('chainChanged',    handleChainChanged);
+      }
     };
   }, [connectWallet]);
 
@@ -175,6 +254,7 @@ export function Web3Provider({ children }) {
       isConnected,
       connecting,
       error,
+      clearError,
       balance,
       chainId,
       connectWallet,

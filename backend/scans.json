@@ -1,1 +1,17 @@
-{}
+{
+  "PHM-ABC-DOL-20261006-001": {
+    "totalScans": 2,
+    "lastScanAt": "2026-10-06T06:20:24.768Z",
+    "lastVerdict": "FAKE"
+  },
+  "PHM-ABC-COM-20261006-001": {
+    "totalScans": 6,
+    "lastScanAt": "2026-10-06T07:50:44.557Z",
+    "lastVerdict": "FAKE"
+  },
+  "PHM-CIP-DOL-20261027-001": {
+    "totalScans": 5,
+    "lastScanAt": "2026-10-27T14:11:25.478Z",
+    "lastVerdict": "GENUINE"
+  }
+}
